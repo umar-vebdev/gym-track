@@ -23,10 +23,10 @@ class RepositoryServiceProvider extends ServiceProvider
     public function register(): void
     {
         // Clients
-        // $this->app->bind(
-        //     \App\Modules\Clients\Repositories\ClientRepositoryInterface::class,
-        //     \App\Modules\Clients\Repositories\EloquentClientRepository::class
-        // );
+        $this->app->bind(
+            \App\Modules\Clients\Repositories\ClientRepositoryInterface::class,
+            \App\Modules\Clients\Repositories\EloquentClientRepository::class
+        );
 
         // MembershipTypes
         // $this->app->bind(

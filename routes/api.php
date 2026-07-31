@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Auth\Http\Controllers\AuthController;
+use App\Modules\Clients\Http\Controllers\ClientController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -22,7 +23,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Auth
     Route::post('/logout', [AuthController::class, 'logout']);
 
-    // Clients — будет добавлено в следующем модуле
+    // Clients
+    Route::apiResource('clients', ClientController::class);
+
     // Memberships — будет добавлено
     // Visits — будет добавлено
     // Reports — будет добавлено
