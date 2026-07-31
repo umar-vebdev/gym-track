@@ -26,7 +26,13 @@ Route::middleware('auth:sanctum')->group(function () {
     // Clients
     Route::apiResource('clients', ClientController::class);
 
-    // Memberships — будет добавлено
+    // Memberships - Types
+    Route::patch('/membership-types/{id}/toggle', [\App\Modules\Memberships\Http\Controllers\MembershipTypeController::class, 'toggle']);
+    Route::apiResource('membership-types', \App\Modules\Memberships\Http\Controllers\MembershipTypeController::class);
+
+    // Memberships - Purchases
+    Route::apiResource('membership-purchases', \App\Modules\Memberships\Http\Controllers\MembershipPurchaseController::class)->only(['index', 'show', 'store']);
+
     // Visits — будет добавлено
     // Reports — будет добавлено
 });

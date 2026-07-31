@@ -29,16 +29,16 @@ class RepositoryServiceProvider extends ServiceProvider
         );
 
         // MembershipTypes
-        // $this->app->bind(
-        //     \App\Modules\Memberships\Repositories\MembershipTypeRepositoryInterface::class,
-        //     \App\Modules\Memberships\Repositories\EloquentMembershipTypeRepository::class
-        // );
+        $this->app->bind(
+            \App\Modules\Memberships\Repositories\MembershipTypeRepositoryInterface::class,
+            \App\Modules\Memberships\Repositories\EloquentMembershipTypeRepository::class
+        );
 
         // MembershipPurchases
-        // $this->app->bind(
-        //     \App\Modules\Memberships\Repositories\MembershipPurchaseRepositoryInterface::class,
-        //     \App\Modules\Memberships\Repositories\EloquentMembershipPurchaseRepository::class
-        // );
+        $this->app->bind(
+            \App\Modules\Memberships\Repositories\MembershipPurchaseRepositoryInterface::class,
+            \App\Modules\Memberships\Repositories\EloquentMembershipPurchaseRepository::class
+        );
 
         // Visits
         // $this->app->bind(
