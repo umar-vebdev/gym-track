@@ -41,9 +41,15 @@ class RepositoryServiceProvider extends ServiceProvider
         );
 
         // Visits
-        // $this->app->bind(
-        //     \App\Modules\Visits\Repositories\VisitRepositoryInterface::class,
-        //     \App\Modules\Visits\Repositories\EloquentVisitRepository::class
-        // );
+        $this->app->bind(
+            \App\Modules\Visits\Repositories\VisitRepositoryInterface::class,
+            \App\Modules\Visits\Repositories\EloquentVisitRepository::class
+        );
+
+        // Reports
+        $this->app->bind(
+            \App\Modules\Reports\Repositories\ReportRepositoryInterface::class,
+            \App\Modules\Reports\Repositories\EloquentReportRepository::class
+        );
     }
 }

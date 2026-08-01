@@ -31,6 +31,14 @@ class MembershipPurchase extends Model
     use HasFactory;
 
     /**
+     * Создать новый экземпляр фабрики для модели.
+     */
+    protected static function newFactory(): \Database\Factories\MembershipPurchaseFactory
+    {
+        return \Database\Factories\MembershipPurchaseFactory::new();
+    }
+
+    /**
      * @var array<int, string>
      */
     protected $fillable = [

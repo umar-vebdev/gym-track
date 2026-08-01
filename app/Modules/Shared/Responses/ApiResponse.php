@@ -230,14 +230,34 @@ class ApiResponse
                 if ($this->data instanceof LengthAwarePaginator) {
                     $response['data'] = [
                         'items' => $this->data->items(),
-                        'meta' => [
+                        'meta'  => [
                             'pagination' => [
                                 'current_page' => $this->data->currentPage(),
-                                'per_page' => $this->data->perPage(),
-                                'total' => $this->data->total(),
-                                'last_page' => $this->data->lastPage(),
-                                'from' => $this->data->firstItem(),
-                                'to' => $this->data->lastItem(),
+                                'per_page'     => $this->data->perPage(),
+                                'total'        => $this->data->total(),
+                                'last_page'    => $this->data->lastPage(),
+                                'from'         => $this->data->firstItem(),
+                                'to'           => $this->data->lastItem(),
+                            ],
+                        ],
+                    ];
+                } elseif (
+                    $this->data instanceof \Illuminate\Http\Resources\Json\AnonymousResourceCollection
+                    && $this->data->resource instanceof LengthAwarePaginator
+                ) {
+                    /** @var LengthAwarePaginator $paginator */
+                    $paginator = $this->data->resource;
+
+                    $response['data'] = [
+                        'items' => $this->data,
+                        'meta'  => [
+                            'pagination' => [
+                                'current_page' => $paginator->currentPage(),
+                                'per_page'     => $paginator->perPage(),
+                                'total'        => $paginator->total(),
+                                'last_page'    => $paginator->lastPage(),
+                                'from'         => $paginator->firstItem(),
+                                'to'           => $paginator->lastItem(),
                             ],
                         ],
                     ];

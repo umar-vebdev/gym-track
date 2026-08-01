@@ -27,6 +27,14 @@ class Client extends Model
     use HasFactory;
 
     /**
+     * Создать новый экземпляр фабрики для модели.
+     */
+    protected static function newFactory(): \Database\Factories\ClientFactory
+    {
+        return \Database\Factories\ClientFactory::new();
+    }
+
+    /**
      * @var array<int, string>
      */
     protected $fillable = [

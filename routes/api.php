@@ -33,6 +33,14 @@ Route::middleware('auth:sanctum')->group(function () {
     // Memberships - Purchases
     Route::apiResource('membership-purchases', \App\Modules\Memberships\Http\Controllers\MembershipPurchaseController::class)->only(['index', 'show', 'store']);
 
-    // Visits — будет добавлено
-    // Reports — будет добавлено
+    // Visits
+    Route::apiResource('visits', \App\Modules\Visits\Http\Controllers\VisitController::class);
+
+    // Reports
+    Route::prefix('reports')->group(function () {
+        Route::get('/dashboard', [\App\Modules\Reports\Http\Controllers\ReportController::class, 'dashboard']);
+        Route::get('/revenue', [\App\Modules\Reports\Http\Controllers\ReportController::class, 'revenue']);
+        Route::get('/visits', [\App\Modules\Reports\Http\Controllers\ReportController::class, 'visits']);
+        Route::get('/expiring-memberships', [\App\Modules\Reports\Http\Controllers\ReportController::class, 'expiringMemberships']);
+    });
 });

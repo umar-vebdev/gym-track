@@ -25,6 +25,14 @@ class MembershipType extends Model
     use HasFactory;
 
     /**
+     * Создать новый экземпляр фабрики для модели.
+     */
+    protected static function newFactory(): \Database\Factories\MembershipTypeFactory
+    {
+        return \Database\Factories\MembershipTypeFactory::new();
+    }
+
+    /**
      * @var array<int, string>
      */
     protected $fillable = [
