@@ -15,27 +15,27 @@ class EloquentReportRepository implements ReportRepositoryInterface
     /**
      * {@inheritDoc}
      */
-    public function getDashboardOverview(string $date): array
+    public function getDashboardOverview(string $startDate, string $endDate): array
     {
         $todayRevenue = (float) MembershipPurchase::query()
-            ->whereDate('membership_purchases.created_at', $date)
+            ->whereBetween(DB::raw('DATE(membership_purchases.created_at)'), [$startDate, $endDate])
             ->sum('membership_purchases.amount_paid');
 
         $todayPurchasesCount = MembershipPurchase::query()
-            ->whereDate('membership_purchases.created_at', $date)
+            ->whereBetween(DB::raw('DATE(membership_purchases.created_at)'), [$startDate, $endDate])
             ->count();
 
         $todayVisitsCount = Visit::query()
-            ->whereDate('visits.visited_at', $date)
+            ->whereBetween(DB::raw('DATE(visits.visited_at)'), [$startDate, $endDate])
             ->count();
 
         $totalClientsCount = Client::query()->count();
 
         $activePurchasesCount = MembershipPurchase::query()
-            ->where('membership_purchases.starts_at', '<=', $date)
-            ->where(function ($q) use ($date) {
+            ->where('membership_purchases.starts_at', '<=', $endDate)
+            ->where(function ($q) use ($endDate) {
                 $q->whereNull('membership_purchases.expires_at')
-                  ->orWhere('membership_purchases.expires_at', '>=', $date);
+                  ->orWhere('membership_purchases.expires_at', '>=', $endDate);
             })
             ->where(function ($q) {
                 $q->whereNull('membership_purchases.visits_left')
@@ -44,7 +44,7 @@ class EloquentReportRepository implements ReportRepositoryInterface
             ->count();
 
         return [
-            'date'                  => $date,
+            'date'                  => $endDate,
             'today_revenue'         => $todayRevenue,
             'today_purchases_count' => $todayPurchasesCount,
             'today_visits_count'    => $todayVisitsCount,
@@ -199,5 +199,24 @@ class EloquentReportRepository implements ReportRepositoryInterface
                 'days_left'       => (int) now()->diffInDays($p->expires_at, false),
             ])
             ->toArray();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getTransactions(?string $startDate, ?string $endDate, ?string $paymentMethod = null, int $perPage = 15)
+    {
+        $query = MembershipPurchase::with(['client', 'membershipType'])
+            ->orderByDesc('created_at');
+
+        if ($startDate && $endDate) {
+            $query->whereBetween(DB::raw('DATE(membership_purchases.created_at)'), [$startDate, $endDate]);
+        }
+        
+        if ($paymentMethod) {
+            $query->where('payment_method', $paymentMethod);
+        }
+
+        return $query->paginate($perPage);
     }
 }

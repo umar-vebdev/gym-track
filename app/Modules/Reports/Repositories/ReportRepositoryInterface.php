@@ -8,13 +8,14 @@ namespace App\Modules\Reports\Repositories;
 interface ReportRepositoryInterface
 {
     /**
-     * Сводная статистика для дашборда за указанный день (по умолчанию сегодня).
+     * Сводная статистика для дашборда за указанный период.
      *
-     * @param string $date Дата в формате YYYY-MM-DD
+     * @param string $startDate Дата начала YYYY-MM-DD
+     * @param string $endDate   Дата окончания YYYY-MM-DD
      *
      * @return array<string, mixed>
      */
-    public function getDashboardOverview(string $date): array;
+    public function getDashboardOverview(string $startDate, string $endDate): array;
 
     /**
      * Отчёт по выручке и продажам за период.
@@ -44,4 +45,16 @@ interface ReportRepositoryInterface
      * @return array<int, mixed>
      */
     public function getExpiringMemberships(int $days = 7): array;
+
+    /**
+     * Список финансовых транзакций (продаж абонементов).
+     *
+     * @param string|null $startDate Дата начала YYYY-MM-DD
+     * @param string|null $endDate   Дата окончания YYYY-MM-DD
+     * @param string|null $paymentMethod Способ оплаты (cash, card)
+     * @param int $perPage Количество записей на страницу
+     *
+     * @return \Illuminate\Pagination\LengthAwarePaginator
+     */
+    public function getTransactions(?string $startDate, ?string $endDate, ?string $paymentMethod = null, int $perPage = 15);
 }

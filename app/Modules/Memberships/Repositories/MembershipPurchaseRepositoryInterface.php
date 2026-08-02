@@ -47,4 +47,23 @@ interface MembershipPurchaseRepositoryInterface
      * @return MembershipPurchase
      */
     public function decrementVisit(MembershipPurchase $purchase): MembershipPurchase;
+
+    /**
+     * Обновить запись о покупке абонемента.
+     *
+     * @param int $id
+     * @param array<string, mixed> $data
+     *
+     * @return MembershipPurchase
+     */
+    public function update(int $id, array $data): MembershipPurchase;
+
+    /**
+     * Удалить запись о покупке абонемента.
+     *
+     * @param int $id
+     *
+     * @return void
+     */
+    public function delete(int $id): void;
 }

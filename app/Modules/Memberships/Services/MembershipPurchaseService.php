@@ -94,4 +94,29 @@ class MembershipPurchaseService
     {
         return $this->purchaseRepository->findById($id);
     }
+    
+    /**
+     * Обновить покупку абонемента.
+     *
+     * @param int $id
+     * @param array<string, mixed> $data
+     *
+     * @return MembershipPurchase
+     */
+    public function update(int $id, array $data): MembershipPurchase
+    {
+        return $this->purchaseRepository->update($id, $data);
+    }
+    
+    /**
+     * Удалить покупку абонемента.
+     *
+     * @param int $id
+     *
+     * @return void
+     */
+    public function delete(int $id): void
+    {
+        $this->purchaseRepository->delete($id);
+    }
 }

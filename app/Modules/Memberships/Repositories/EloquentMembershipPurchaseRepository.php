@@ -55,9 +55,6 @@ class EloquentMembershipPurchaseRepository implements MembershipPurchaseReposito
         return $purchase->load(['client', 'membershipType']);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public function decrementVisit(MembershipPurchase $purchase): MembershipPurchase
     {
         if ($purchase->visits_left !== null && $purchase->visits_left > 0) {
@@ -65,5 +62,30 @@ class EloquentMembershipPurchaseRepository implements MembershipPurchaseReposito
         }
 
         return $purchase->refresh();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function update(int $id, array $data): MembershipPurchase
+    {
+        $purchase = $this->findById($id);
+        if (!$purchase) {
+            throw new \Illuminate\Database\Eloquent\ModelNotFoundException("Purchase with ID $id not found");
+        }
+
+        $purchase->update($data);
+        return $purchase->refresh();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function delete(int $id): void
+    {
+        $purchase = $this->findById($id);
+        if ($purchase) {
+            $purchase->delete();
+        }
     }
 }

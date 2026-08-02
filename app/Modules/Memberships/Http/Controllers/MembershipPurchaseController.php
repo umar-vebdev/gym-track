@@ -159,4 +159,26 @@ class MembershipPurchaseController extends Controller
             return ApiResponse::make()->error($e->getMessage(), 'INVALID_MEMBERSHIP_TYPE', [], 422);
         }
     }
+
+    /**
+     * Обновить параметры проданного абонемента
+     */
+    public function update(\App\Modules\Memberships\Http\Requests\UpdateMembershipPurchaseRequest $request, int $id): JsonResponse
+    {
+        try {
+            $purchase = $this->service->update($id, $request->validated());
+            return ApiResponse::make()->success(new MembershipPurchaseResource($purchase));
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return ApiResponse::make()->notFound('Запись о покупке не найдена');
+        }
+    }
+
+    /**
+     * Удалить/отменить покупку абонемента
+     */
+    public function destroy(int $id): JsonResponse
+    {
+        $this->service->delete($id);
+        return ApiResponse::make()->success(['message' => 'Покупка успешно удалена']);
+    }
 }

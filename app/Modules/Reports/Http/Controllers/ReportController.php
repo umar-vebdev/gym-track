@@ -23,26 +23,22 @@ class ReportController extends Controller
     /**
      * Дашборд (Главная статистика)
      *
-     * Возвращает сводные ключевые показатели за день (сегодняшняя выручка, количество продаж, посещаемость, всего клиентов, активные абонементы).
+     * Возвращает сводные ключевые показатели за указанный период.
      *
-     * @queryParam string date Дата статистики (YYYY-MM-DD). По умолчанию сегодня. Example: 2026-08-01
+     * @queryParam string start_date Дата начала (YYYY-MM-DD). По умолчанию сегодня. 
+     * @queryParam string end_date Дата окончания (YYYY-MM-DD). По умолчанию сегодня.
      *
      * @response 200 {
      *   "success": true,
-     *   "data": {
-     *     "date": "2026-08-01",
-     *     "today_revenue": 15000.0,
-     *     "today_purchases_count": 6,
-     *     "today_visits_count": 18,
-     *     "total_clients_count": 120,
-     *     "active_memberships": 85
-     *   }
+     *   ...
      * }
      */
     public function dashboard(Request $request): JsonResponse
     {
-        $date = $request->query('date');
-        $overview = $this->service->getDashboardOverview($date);
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+        
+        $overview = $this->service->getDashboardOverview($startDate, $endDate);
 
         return ApiResponse::make()->success($overview);
     }
@@ -152,5 +148,33 @@ class ReportController extends Controller
         $list = $this->service->getExpiringMemberships($days);
 
         return ApiResponse::make()->success($list);
+    }
+
+    /**
+     * Журнал финансовых транзакций (продаж)
+     */
+    public function transactions(Request $request): JsonResponse
+    {
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+        $paymentMethod = $request->query('payment_method');
+        $perPage = (int) $request->query('per_page', 15);
+
+        $transactions = $this->service->getTransactions($startDate, $endDate, $paymentMethod, $perPage);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'items' => \App\Modules\Memberships\Http\Resources\MembershipPurchaseResource::collection($transactions->items()),
+                'meta' => [
+                    'pagination' => [
+                        'current_page' => $transactions->currentPage(),
+                        'per_page' => $transactions->perPage(),
+                        'total' => $transactions->total(),
+                        'last_page' => $transactions->lastPage()
+                    ]
+                ]
+            ]
+        ]);
     }
 }

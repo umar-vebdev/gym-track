@@ -31,7 +31,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('membership-types', \App\Modules\Memberships\Http\Controllers\MembershipTypeController::class);
 
     // Memberships - Purchases
-    Route::apiResource('membership-purchases', \App\Modules\Memberships\Http\Controllers\MembershipPurchaseController::class)->only(['index', 'show', 'store']);
+    Route::apiResource('membership-purchases', \App\Modules\Memberships\Http\Controllers\MembershipPurchaseController::class);
 
     // Visits
     Route::apiResource('visits', \App\Modules\Visits\Http\Controllers\VisitController::class);
@@ -41,6 +41,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/dashboard', [\App\Modules\Reports\Http\Controllers\ReportController::class, 'dashboard']);
         Route::get('/revenue', [\App\Modules\Reports\Http\Controllers\ReportController::class, 'revenue']);
         Route::get('/visits', [\App\Modules\Reports\Http\Controllers\ReportController::class, 'visits']);
+        Route::get('/transactions', [\App\Modules\Reports\Http\Controllers\ReportController::class, 'transactions']);
         Route::get('/expiring-memberships', [\App\Modules\Reports\Http\Controllers\ReportController::class, 'expiringMemberships']);
     });
 });
