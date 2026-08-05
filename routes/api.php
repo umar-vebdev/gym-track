@@ -24,6 +24,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 
     // Clients
+    Route::post('clients/{client}/deduct-visit', [ClientController::class, 'deductVisit']);
     Route::apiResource('clients', ClientController::class);
 
     // Memberships - Types
@@ -36,12 +37,19 @@ Route::middleware('auth:sanctum')->group(function () {
     // Visits
     Route::apiResource('visits', \App\Modules\Visits\Http\Controllers\VisitController::class);
 
+    // Products
+    Route::patch('/products/{id}/toggle', [\App\Modules\Products\Http\Controllers\ProductController::class, 'toggle']);
+    Route::apiResource('products', \App\Modules\Products\Http\Controllers\ProductController::class);
+
+    // Product Sales
+    Route::apiResource('product-sales', \App\Modules\Products\Http\Controllers\ProductSaleController::class)->except(['update', 'destroy']);
+
     // Reports
     Route::prefix('reports')->group(function () {
         Route::get('/dashboard', [\App\Modules\Reports\Http\Controllers\ReportController::class, 'dashboard']);
         Route::get('/revenue', [\App\Modules\Reports\Http\Controllers\ReportController::class, 'revenue']);
         Route::get('/visits', [\App\Modules\Reports\Http\Controllers\ReportController::class, 'visits']);
-        Route::get('/transactions', [\App\Modules\Reports\Http\Controllers\ReportController::class, 'transactions']);
+        Route::get('/history', [\App\Modules\Reports\Http\Controllers\ReportController::class, 'history']);
         Route::get('/expiring-memberships', [\App\Modules\Reports\Http\Controllers\ReportController::class, 'expiringMemberships']);
     });
 });

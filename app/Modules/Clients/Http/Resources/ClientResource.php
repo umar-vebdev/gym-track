@@ -40,6 +40,9 @@ class ClientResource extends JsonResource
             'phone'       => $this->phone,
             'created_at'  => $this->created_at->toISOString(),
             'updated_at'  => $this->updated_at->toISOString(),
+            'membership_purchases' => $this->whenLoaded('membershipPurchases'),
+            'visits'      => $this->whenLoaded('visits'),
+            'product_sales' => $this->whenLoaded('productSales'),
         ];
     }
 }

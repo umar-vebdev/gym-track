@@ -50,14 +50,43 @@ class ReportTest extends TestCase
             'payment_method' => 'card',
             'created_at'     => now(),
         ]);
+        
+        $client = Client::factory()->create();
+        $product = \App\Modules\Products\Models\Product::create(['name' => 'W', 'price' => 100, 'is_active' => true]);
+        \App\Modules\Products\Models\ProductSale::create([
+            'client_id' => $client->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'total_price' => 100,
+            'payment_method' => 'cash',
+        ]);
 
         $today = now()->toDateString();
         $response = $this->actingAs($this->user)->getJson("/api/reports/revenue?start_date={$today}&end_date={$today}");
 
         $response->assertStatus(200)
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.total_revenue', 3000)
-            ->assertJsonPath('data.total_purchases', 1);
+            ->assertJsonPath('data.total_revenue', 3100)
+            ->assertJsonPath('data.total_purchases', 2);
+            
+        // Test filtering by type
+        $response = $this->actingAs($this->user)->getJson("/api/reports/revenue?start_date={$today}&end_date={$today}&type=product");
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.total_revenue', 100);
+    }
+    
+    public function test_can_get_history(): void
+    {
+        $client = Client::factory()->create();
+        Visit::factory()->create(['client_id' => $client->id]);
+        MembershipPurchase::factory()->create(['client_id' => $client->id]);
+        
+        $response = $this->actingAs($this->user)->getJson("/api/reports/history");
+        
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonCount(3, 'data.items');
     }
 
     public function test_can_get_visits_report(): void

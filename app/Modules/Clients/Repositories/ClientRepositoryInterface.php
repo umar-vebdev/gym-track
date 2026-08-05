@@ -18,10 +18,11 @@ interface ClientRepositoryInterface
      *
      * @param string|null $search  Строка поиска по ФИО
      * @param int         $perPage Количество записей на страницу
+     * @param int|null    $membershipTypeId Фильтр по типу абонемента
      *
      * @return LengthAwarePaginator
      */
-    public function paginate(?string $search = null, int $perPage = 15): LengthAwarePaginator;
+    public function paginate(?string $search = null, int $perPage = 15, ?int $membershipTypeId = null): LengthAwarePaginator;
 
     /**
      * Найти клиента по ID.

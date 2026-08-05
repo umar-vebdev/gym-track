@@ -31,6 +31,7 @@ class ClientController extends Controller
      *
      * @queryParam string search Поиск по ФИО, телефону или коду. Example: Иванов
      * @queryParam int per_page Кол-во записей на страницу. Example: 15
+     * @queryParam int membership_type_id Фильтр по ID типа абонемента. Example: 1
      *
      * @response 200 {
      *   "success": true,
@@ -62,7 +63,8 @@ class ClientController extends Controller
     {
         $clients = $this->service->list(
             search: $request->query('search'),
-            perPage: (int) $request->query('per_page', 15)
+            perPage: (int) $request->query('per_page', 15),
+            membershipTypeId: $request->query('membership_type_id') ? (int) $request->query('membership_type_id') : null
         );
 
         return ApiResponse::make()->success(
@@ -103,6 +105,8 @@ class ClientController extends Controller
         if (!$client) {
             return ApiResponse::make()->notFound('Клиент не найден');
         }
+
+        $client->load(['membershipPurchases.membershipType', 'visits', 'productSales.product']);
 
         return ApiResponse::make()->success(new ClientResource($client));
     }
@@ -210,5 +214,35 @@ class ClientController extends Controller
         $this->service->delete($client);
 
         return ApiResponse::make()->noContent();
+    }
+
+    /**
+     * Списать 1 посещение (быстрая кнопка)
+     *
+     * Находит активный абонемент клиента и списывает 1 посещение.
+     * Если абонемента нет, возвращает ошибку.
+     *
+     * @response 201 {
+     *   "success": true,
+     *   "data": {
+     *      "id": 1,
+     *      "client_id": 1,
+     *      "membership_purchase_id": 1
+     *   }
+     * }
+     */
+    public function deductVisit(int $id, \App\Modules\Visits\Services\VisitService $visitService): JsonResponse
+    {
+        try {
+            $visit = $visitService->checkIn($id);
+            return ApiResponse::make()->created(new \App\Modules\Visits\Http\Resources\VisitResource($visit));
+        } catch (\InvalidArgumentException $e) {
+            return ApiResponse::make()->error(
+                message: $e->getMessage(),
+                code: 'CHECK_IN_FAILED',
+                details: [],
+                status: 422
+            );
+        }
     }
 }

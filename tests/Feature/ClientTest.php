@@ -100,4 +100,58 @@ class ClientTest extends TestCase
         $response->assertStatus(204);
         $this->assertDatabaseMissing('clients', ['id' => $client->id]);
     }
+
+    public function test_can_filter_clients_by_membership_type(): void
+    {
+        $client1 = Client::factory()->create();
+        $membershipType1 = \App\Modules\Memberships\Models\MembershipType::factory()->create();
+        \App\Modules\Memberships\Models\MembershipPurchase::factory()->create([
+            'client_id' => $client1->id,
+            'membership_type_id' => $membershipType1->id,
+            'starts_at' => now(),
+            'expires_at' => now()->addDays(30),
+        ]);
+
+        $client2 = Client::factory()->create();
+        $membershipType2 = \App\Modules\Memberships\Models\MembershipType::factory()->create();
+        \App\Modules\Memberships\Models\MembershipPurchase::factory()->create([
+            'client_id' => $client2->id,
+            'membership_type_id' => $membershipType2->id,
+            'starts_at' => now(),
+            'expires_at' => now()->addDays(30),
+        ]);
+
+        $response = $this->actingAs($this->user)->getJson("/api/clients?membership_type_id={$membershipType1->id}");
+
+        $response->assertStatus(200)->assertJsonCount(1, 'data.items')
+            ->assertJsonPath('data.items.0.id', $client1->id);
+    }
+
+    public function test_can_deduct_visit_from_active_membership(): void
+    {
+        $client = Client::factory()->create();
+        $membershipType = \App\Modules\Memberships\Models\MembershipType::factory()->create(['duration_type' => 'visits', 'duration_value' => 10]);
+        $purchase = \App\Modules\Memberships\Models\MembershipPurchase::factory()->create([
+            'client_id' => $client->id,
+            'membership_type_id' => $membershipType->id,
+            'starts_at' => now()->subDay()->toDateString(),
+            'expires_at' => null,
+            'visits_left' => 10,
+        ]);
+
+        $response = $this->actingAs($this->user)->postJson("/api/clients/{$client->id}/deduct-visit");
+
+        $response->assertStatus(201)
+            ->assertJsonPath('success', true);
+
+        $this->assertDatabaseHas('membership_purchases', [
+            'id' => $purchase->id,
+            'visits_left' => 9,
+        ]);
+        
+        $this->assertDatabaseHas('visits', [
+            'client_id' => $client->id,
+            'membership_purchase_id' => $purchase->id,
+        ]);
+    }
 }

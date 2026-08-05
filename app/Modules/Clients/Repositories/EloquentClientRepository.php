@@ -15,7 +15,7 @@ class EloquentClientRepository implements ClientRepositoryInterface
     /**
      * {@inheritDoc}
      */
-    public function paginate(?string $search = null, int $perPage = 15): LengthAwarePaginator
+    public function paginate(?string $search = null, int $perPage = 15, ?int $membershipTypeId = null): LengthAwarePaginator
     {
         $query = Client::query();
 
@@ -24,6 +24,12 @@ class EloquentClientRepository implements ClientRepositoryInterface
                 $q->where('full_name', 'like', "%{$search}%")
                   ->orWhere('phone', 'like', "%{$search}%")
                   ->orWhere('client_code', 'like', "%{$search}%");
+            });
+        }
+
+        if ($membershipTypeId) {
+            $query->whereHas('membershipPurchases', function ($q) use ($membershipTypeId) {
+                $q->where('membership_type_id', $membershipTypeId);
             });
         }
 

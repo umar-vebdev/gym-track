@@ -22,10 +22,11 @@ interface ReportRepositoryInterface
      *
      * @param string $startDate Дата начала YYYY-MM-DD
      * @param string $endDate   Дата окончания YYYY-MM-DD
+     * @param string|null $type Тип продаж (membership, product)
      *
      * @return array<string, mixed>
      */
-    public function getRevenueReport(string $startDate, string $endDate): array;
+    public function getRevenueReport(string $startDate, string $endDate, ?string $type = null): array;
 
     /**
      * Отчёт по посещаемости за период (с расчётом пиковых часов).
@@ -47,14 +48,7 @@ interface ReportRepositoryInterface
     public function getExpiringMemberships(int $days = 7): array;
 
     /**
-     * Список финансовых транзакций (продаж абонементов).
-     *
-     * @param string|null $startDate Дата начала YYYY-MM-DD
-     * @param string|null $endDate   Дата окончания YYYY-MM-DD
-     * @param string|null $paymentMethod Способ оплаты (cash, card)
-     * @param int $perPage Количество записей на страницу
-     *
-     * @return \Illuminate\Pagination\LengthAwarePaginator
+     * История действий (посещения, покупки товаров, абонементов).
      */
-    public function getTransactions(?string $startDate, ?string $endDate, ?string $paymentMethod = null, int $perPage = 15);
+    public function getHistory(?string $startDate = null, ?string $endDate = null, ?string $type = null, int $page = 1, int $perPage = 15): array;
 }

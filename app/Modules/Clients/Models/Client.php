@@ -96,4 +96,14 @@ class Client extends Model
     {
         return $this->hasMany(\App\Modules\Visits\Models\Visit::class);
     }
+
+    /**
+     * Покупки товаров.
+     *
+     * @return HasMany<\App\Modules\Products\Models\ProductSale, $this>
+     */
+    public function productSales(): HasMany
+    {
+        return $this->hasMany(\App\Modules\Products\Models\ProductSale::class);
+    }
 }

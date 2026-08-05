@@ -4,42 +4,49 @@ namespace App\Modules\Reports\Repositories;
 
 use App\Modules\Clients\Models\Client;
 use App\Modules\Memberships\Models\MembershipPurchase;
+use App\Modules\Products\Models\ProductSale;
 use App\Modules\Visits\Models\Visit;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
  * Eloquent-реализация агрегирующих запросов для отчётов.
  */
 class EloquentReportRepository implements ReportRepositoryInterface
 {
-    /**
-     * {@inheritDoc}
-     */
     public function getDashboardOverview(string $startDate, string $endDate): array
     {
         $todayRevenue = (float) MembershipPurchase::query()
-            ->whereBetween(DB::raw('DATE(membership_purchases.created_at)'), [$startDate, $endDate])
-            ->sum('membership_purchases.amount_paid');
+            ->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate])
+            ->sum('amount_paid');
+            
+        $todayRevenue += (float) ProductSale::query()
+            ->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate])
+            ->sum('total_price');
 
         $todayPurchasesCount = MembershipPurchase::query()
-            ->whereBetween(DB::raw('DATE(membership_purchases.created_at)'), [$startDate, $endDate])
+            ->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate])
+            ->count();
+            
+        $todayPurchasesCount += ProductSale::query()
+            ->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate])
             ->count();
 
         $todayVisitsCount = Visit::query()
-            ->whereBetween(DB::raw('DATE(visits.visited_at)'), [$startDate, $endDate])
+            ->whereBetween(DB::raw('DATE(visited_at)'), [$startDate, $endDate])
             ->count();
 
         $totalClientsCount = Client::query()->count();
 
         $activePurchasesCount = MembershipPurchase::query()
-            ->where('membership_purchases.starts_at', '<=', $endDate)
+            ->where('starts_at', '<=', $endDate)
             ->where(function ($q) use ($endDate) {
-                $q->whereNull('membership_purchases.expires_at')
-                  ->orWhere('membership_purchases.expires_at', '>=', $endDate);
+                $q->whereNull('expires_at')
+                  ->orWhere('expires_at', '>=', $endDate);
             })
             ->where(function ($q) {
-                $q->whereNull('membership_purchases.visits_left')
-                  ->orWhere('membership_purchases.visits_left', '>', 0);
+                $q->whereNull('visits_left')
+                  ->orWhere('visits_left', '>', 0);
             })
             ->count();
 
@@ -53,83 +60,72 @@ class EloquentReportRepository implements ReportRepositoryInterface
         ];
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function getRevenueReport(string $startDate, string $endDate): array
+    public function getRevenueReport(string $startDate, string $endDate, ?string $type = null): array
     {
-        $query = MembershipPurchase::query()
-            ->whereBetween(DB::raw('DATE(membership_purchases.created_at)'), [$startDate, $endDate]);
+        $totalRevenue = 0;
+        $totalCount = 0;
+        $byPaymentMethod = [];
+        $daily = [];
 
-        $totalRevenue = (float) (clone $query)->sum('membership_purchases.amount_paid');
-        $totalCount = (int) (clone $query)->count();
+        if (!$type || $type === 'membership') {
+            $query = MembershipPurchase::query()->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate]);
+            $totalRevenue += (float) (clone $query)->sum('amount_paid');
+            $totalCount += (int) (clone $query)->count();
+            
+            $methods = (clone $query)->select('payment_method', DB::raw('SUM(amount_paid) as sum'), DB::raw('COUNT(*) as c'))
+                ->groupBy('payment_method')->get();
+            foreach ($methods as $m) {
+                $method = $m->payment_method ?? 'cash';
+                if (!isset($byPaymentMethod[$method])) $byPaymentMethod[$method] = ['payment_method' => $method, 'total' => 0, 'count' => 0];
+                $byPaymentMethod[$method]['total'] += (float) $m->sum;
+                $byPaymentMethod[$method]['count'] += (int) $m->c;
+            }
 
-        // Группировка по способам оплаты
-        $byPaymentMethod = (clone $query)
-            ->select(
-                'membership_purchases.payment_method',
-                DB::raw('SUM(membership_purchases.amount_paid) as total'),
-                DB::raw('COUNT(*) as count')
-            )
-            ->groupBy('membership_purchases.payment_method')
-            ->get()
-            ->map(fn ($row) => [
-                'payment_method' => $row->payment_method ?? 'cash',
-                'total'          => (float) $row->total,
-                'count'          => (int) $row->count,
-            ])
-            ->toArray();
+            $days = (clone $query)->select(DB::raw('DATE(created_at) as date'), DB::raw('SUM(amount_paid) as sum'), DB::raw('COUNT(*) as c'))
+                ->groupBy(DB::raw('DATE(created_at)'))->get();
+            foreach ($days as $d) {
+                if (!isset($daily[$d->date])) $daily[$d->date] = ['date' => $d->date, 'total' => 0, 'count' => 0];
+                $daily[$d->date]['total'] += (float) $d->sum;
+                $daily[$d->date]['count'] += (int) $d->c;
+            }
+        }
 
-        // Группировка по типам абонементов
-        $byMembershipType = (clone $query)
-            ->join('membership_types', 'membership_purchases.membership_type_id', '=', 'membership_types.id')
-            ->select(
-                'membership_types.id',
-                'membership_types.name',
-                DB::raw('SUM(membership_purchases.amount_paid) as total'),
-                DB::raw('COUNT(*) as count')
-            )
-            ->groupBy('membership_types.id', 'membership_types.name')
-            ->get()
-            ->map(fn ($row) => [
-                'type_id'   => (int) $row->id,
-                'type_name' => $row->name,
-                'total'     => (float) $row->total,
-                'count'     => (int) $row->count,
-            ])
-            ->toArray();
+        if (!$type || $type === 'product') {
+            $query = ProductSale::query()->whereBetween(DB::raw('DATE(created_at)'), [$startDate, $endDate]);
+            $totalRevenue += (float) (clone $query)->sum('total_price');
+            $totalCount += (int) (clone $query)->count();
 
-        // Динамика по дням
-        $daily = (clone $query)
-            ->select(
-                DB::raw('DATE(membership_purchases.created_at) as date'),
-                DB::raw('SUM(membership_purchases.amount_paid) as total'),
-                DB::raw('COUNT(*) as count')
-            )
-            ->groupBy(DB::raw('DATE(membership_purchases.created_at)'))
-            ->orderBy('date')
-            ->get()
-            ->map(fn ($row) => [
-                'date'  => $row->date,
-                'total' => (float) $row->total,
-                'count' => (int) $row->count,
-            ])
-            ->toArray();
+            $methods = (clone $query)->select('payment_method', DB::raw('SUM(total_price) as sum'), DB::raw('COUNT(*) as c'))
+                ->groupBy('payment_method')->get();
+            foreach ($methods as $m) {
+                $method = $m->payment_method ?? 'cash';
+                if (!isset($byPaymentMethod[$method])) $byPaymentMethod[$method] = ['payment_method' => $method, 'total' => 0, 'count' => 0];
+                $byPaymentMethod[$method]['total'] += (float) $m->sum;
+                $byPaymentMethod[$method]['count'] += (int) $m->c;
+            }
+
+            $days = (clone $query)->select(DB::raw('DATE(created_at) as date'), DB::raw('SUM(total_price) as sum'), DB::raw('COUNT(*) as c'))
+                ->groupBy(DB::raw('DATE(created_at)'))->get();
+            foreach ($days as $d) {
+                if (!isset($daily[$d->date])) $daily[$d->date] = ['date' => $d->date, 'total' => 0, 'count' => 0];
+                $daily[$d->date]['total'] += (float) $d->sum;
+                $daily[$d->date]['count'] += (int) $d->c;
+            }
+        }
+
+        usort($daily, fn($a, $b) => strcmp($a['date'], $b['date']));
 
         return [
             'start_date'         => $startDate,
             'end_date'           => $endDate,
             'total_revenue'      => $totalRevenue,
             'total_purchases'    => $totalCount,
-            'by_payment_method'  => $byPaymentMethod,
-            'by_membership_type' => $byMembershipType,
-            'daily'              => $daily,
+            'type'               => $type,
+            'by_payment_method'  => array_values($byPaymentMethod),
+            'daily'              => array_values($daily),
         ];
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public function getVisitsReport(string $startDate, string $endDate): array
     {
         $query = Visit::query()
@@ -137,7 +133,6 @@ class EloquentReportRepository implements ReportRepositoryInterface
 
         $totalVisits = (int) (clone $query)->count();
 
-        // Визиты по дням
         $daily = (clone $query)
             ->select(DB::raw('DATE(visits.visited_at) as date'), DB::raw('COUNT(*) as count'))
             ->groupBy(DB::raw('DATE(visits.visited_at)'))
@@ -149,7 +144,6 @@ class EloquentReportRepository implements ReportRepositoryInterface
             ])
             ->toArray();
 
-        // Загруженность по часам (пиковые часы)
         $isSqlite = DB::connection()->getDriverName() === 'sqlite';
         $hourExpr = $isSqlite ? "strftime('%H', visits.visited_at)" : "HOUR(visits.visited_at)";
 
@@ -173,9 +167,6 @@ class EloquentReportRepository implements ReportRepositoryInterface
         ];
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public function getExpiringMemberships(int $days = 7): array
     {
         $today = now()->startOfDay()->toDateString();
@@ -201,22 +192,59 @@ class EloquentReportRepository implements ReportRepositoryInterface
             ->toArray();
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function getTransactions(?string $startDate, ?string $endDate, ?string $paymentMethod = null, int $perPage = 15)
+    public function getHistory(?string $startDate = null, ?string $endDate = null, ?string $type = null, int $page = 1, int $perPage = 15): array
     {
-        $query = MembershipPurchase::with(['client', 'membershipType'])
-            ->orderByDesc('created_at');
+        $events = collect();
 
-        if ($startDate && $endDate) {
-            $query->whereBetween(DB::raw('DATE(membership_purchases.created_at)'), [$startDate, $endDate]);
-        }
-        
-        if ($paymentMethod) {
-            $query->where('payment_method', $paymentMethod);
+        if (!$type || $type === 'membership') {
+            $q = MembershipPurchase::with(['client', 'membershipType']);
+            if ($startDate) $q->whereDate('created_at', '>=', $startDate);
+            if ($endDate) $q->whereDate('created_at', '<=', $endDate);
+            $events = $events->merge($q->get()->map(fn($item) => (object)[
+                'type' => 'membership_purchase', 
+                'created_at' => $item->created_at, 
+                'data' => $item
+            ]));
         }
 
-        return $query->paginate($perPage);
+        if (!$type || $type === 'visit') {
+            $q = Visit::with(['client']);
+            if ($startDate) $q->whereDate('created_at', '>=', $startDate);
+            if ($endDate) $q->whereDate('created_at', '<=', $endDate);
+            $events = $events->merge($q->get()->map(fn($item) => (object)[
+                'type' => 'visit', 
+                'created_at' => $item->created_at, 
+                'data' => $item
+            ]));
+        }
+
+        if (!$type || $type === 'product') {
+            $q = ProductSale::with(['client', 'product']);
+            if ($startDate) $q->whereDate('created_at', '>=', $startDate);
+            if ($endDate) $q->whereDate('created_at', '<=', $endDate);
+            $events = $events->merge($q->get()->map(fn($item) => (object)[
+                'type' => 'product_sale', 
+                'created_at' => $item->created_at, 
+                'data' => $item
+            ]));
+        }
+
+        $events = $events->sortByDesc('created_at')->values();
+
+        // Paginate manually
+        $total = $events->count();
+        $items = $events->slice(($page - 1) * $perPage, $perPage)->values();
+
+        return [
+            'items' => $items,
+            'meta' => [
+                'pagination' => [
+                    'current_page' => $page,
+                    'per_page' => $perPage,
+                    'total' => $total,
+                    'last_page' => ceil($total / $perPage),
+                ]
+            ]
+        ];
     }
 }

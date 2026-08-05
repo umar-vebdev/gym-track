@@ -37,15 +37,16 @@ class ReportService
      *
      * @param string|null $startDate
      * @param string|null $endDate
+     * @param string|null $type
      *
      * @return array<string, mixed>
      */
-    public function getRevenueReport(?string $startDate = null, ?string $endDate = null): array
+    public function getRevenueReport(?string $startDate = null, ?string $endDate = null, ?string $type = null): array
     {
         $start = $startDate ?? now()->startOfMonth()->toDateString();
         $end = $endDate ?? now()->toDateString();
 
-        return $this->repository->getRevenueReport($start, $end);
+        return $this->repository->getRevenueReport($start, $end, $type);
     }
 
     /**
@@ -77,17 +78,10 @@ class ReportService
     }
 
     /**
-     * Список финансовых транзакций (продаж абонементов).
-     *
-     * @param string|null $startDate
-     * @param string|null $endDate
-     * @param string|null $paymentMethod
-     * @param int $perPage
-     *
-     * @return \Illuminate\Pagination\LengthAwarePaginator
+     * История событий.
      */
-    public function getTransactions(?string $startDate = null, ?string $endDate = null, ?string $paymentMethod = null, int $perPage = 15)
+    public function getHistory(?string $startDate = null, ?string $endDate = null, ?string $type = null, int $page = 1, int $perPage = 15): array
     {
-        return $this->repository->getTransactions($startDate, $endDate, $paymentMethod, $perPage);
+        return $this->repository->getHistory($startDate, $endDate, $type, $page, $perPage);
     }
 }

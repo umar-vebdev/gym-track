@@ -26,12 +26,13 @@ class ClientService
      *
      * @param string|null $search  Строка поиска
      * @param int         $perPage Кол-во на страницу
+     * @param int|null    $membershipTypeId Фильтр по абонементу
      *
      * @return LengthAwarePaginator
      */
-    public function list(?string $search = null, int $perPage = 15): LengthAwarePaginator
+    public function list(?string $search = null, int $perPage = 15, ?int $membershipTypeId = null): LengthAwarePaginator
     {
-        return $this->repository->paginate($search, $perPage);
+        return $this->repository->paginate($search, $perPage, $membershipTypeId);
     }
 
     /**

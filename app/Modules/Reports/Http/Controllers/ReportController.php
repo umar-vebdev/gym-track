@@ -75,8 +75,9 @@ class ReportController extends Controller
     {
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');
+        $type = $request->query('type');
 
-        $report = $this->service->getRevenueReport($startDate, $endDate);
+        $report = $this->service->getRevenueReport($startDate, $endDate, $type);
 
         return ApiResponse::make()->success($report);
     }
@@ -151,30 +152,21 @@ class ReportController extends Controller
     }
 
     /**
-     * Журнал финансовых транзакций (продаж)
+     * Журнал событий (История)
      */
-    public function transactions(Request $request): JsonResponse
+    public function history(Request $request): JsonResponse
     {
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');
-        $paymentMethod = $request->query('payment_method');
+        $type = $request->query('type');
+        $page = (int) $request->query('page', 1);
         $perPage = (int) $request->query('per_page', 15);
 
-        $transactions = $this->service->getTransactions($startDate, $endDate, $paymentMethod, $perPage);
+        $result = $this->service->getHistory($startDate, $endDate, $type, $page, $perPage);
 
         return response()->json([
             'success' => true,
-            'data' => [
-                'items' => \App\Modules\Memberships\Http\Resources\MembershipPurchaseResource::collection($transactions->items()),
-                'meta' => [
-                    'pagination' => [
-                        'current_page' => $transactions->currentPage(),
-                        'per_page' => $transactions->perPage(),
-                        'total' => $transactions->total(),
-                        'last_page' => $transactions->lastPage()
-                    ]
-                ]
-            ]
+            'data' => $result
         ]);
     }
 }
